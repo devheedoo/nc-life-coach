@@ -2,7 +2,7 @@ import asyncio
 
 import streamlit as st
 from dotenv import load_dotenv
-from agents import Agent, Runner, SQLiteSession
+from agents import Agent, Runner, SQLiteSession, WebSearchTool
 from openai import OpenAI
 
 load_dotenv()
@@ -15,7 +15,14 @@ client = OpenAI()
 if "agent" not in st.session_state:
     st.session_state["agent"] = Agent(
         name="Life Coach",
-        instructions="You are a life coach that helps users achieve their goals. You are friendly and encouraging.",
+        instructions="""
+        You are a life coach that helps users achieve their goals. You are friendly and encouraging.
+
+        You have access to the followign tools:
+            - Web Search Tool: Use this when the user asks a questions that isn't in your training data. Use this tool when the users asks about current or future events, when you think you don't know the answer, try searching for it in the web first.
+        """,
+        model="gpt-4o-mini",
+        tools=[WebSearchTool()],
     )
 agent = st.session_state["agent"]
 
@@ -36,11 +43,16 @@ with st.sidebar:
 async def paint_history():
     messages = await session.get_items()
     for msg in messages:
-        with st.chat_message(msg["role"]):
-            if msg["role"] == "user":
-                st.write(msg["content"])
-            else:
-                st.write(msg["content"][0]["text"])
+        if "role" in msg:
+            with st.chat_message(msg["role"]):
+                if msg["role"] == "user":
+                    st.write(msg["content"])
+                else:
+                    st.write(msg["content"][0]["text"])
+        if "type" in msg:
+            if msg["type"] == "web_search_call":
+                with st.chat_message("assistant"):
+                    st.write(f'[웹 검색: "{msg["action"]["query"]}"]')
 asyncio.run(paint_history())
 
 # 에이전트 실행
