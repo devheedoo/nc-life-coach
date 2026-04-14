@@ -8,8 +8,8 @@
 
 ## Requirements
 
-- [v] Streamlit으로 UI를 구현하세요 (st.chat_input, st.chat_message).
-- [ ] 코치가 대화를 기억하도록 세션 메모리를 구현하세요.
+- [x] Streamlit으로 UI를 구현하세요 (st.chat_input, st.chat_message).
+- [x] 코치가 대화를 기억하도록 세션 메모리를 구현하세요.
 - [ ] 에이전트가 관련 조언을 검색할 수 있는 웹 검색 도구를 추가하세요.
 - [ ] 에이전트는 유저를 격려하는 라이프 코치처럼 행동해야 합니다.
 

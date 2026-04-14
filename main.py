@@ -1,21 +1,70 @@
+import asyncio
+
 import streamlit as st
+from dotenv import load_dotenv
+from agents import Agent, Runner, SQLiteSession
+from openai import OpenAI
 
-def main():
-    st.title("Life Coach: Web Search")
+load_dotenv()
 
-    # 메시지 상태 초기화
-    if "messages" not in st.session_state:
-        st.session_state.messages = list()
+st.title("Life Coach: Web Search")
 
-    # 메시지 표시
-    for msg in st.session_state.messages:
+client = OpenAI()
+
+# 에이전트 초기화
+if "agent" not in st.session_state:
+    st.session_state["agent"] = Agent(
+        name="Life Coach",
+        instructions="You are a life coach that helps users achieve their goals. You are friendly and encouraging.",
+    )
+agent = st.session_state["agent"]
+
+# 세션 메모리 초기화
+if "session" not in st.session_state:
+    st.session_state["session"] = SQLiteSession(
+        session_id="life-coach",
+        db_path="life-coach.db",
+    )
+session = st.session_state["session"]
+
+# 사이드바: 세션 초기화
+with st.sidebar:
+    if st.button("Reset Session"):
+        asyncio.run(session.clear_session())
+
+# 메시지 표시
+async def paint_history():
+    messages = await session.get_items()
+    for msg in messages:
         with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+            if msg["role"] == "user":
+                st.write(msg["content"])
+            else:
+                st.write(msg["content"][0]["text"])
+asyncio.run(paint_history())
 
-    # 메시지 입력
-    if prompt := st.chat_input("메시지를 입력하세요..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
+# 에이전트 실행
+async def run_agent(message):
+    with st.chat_message("assistant"):
+        placeholder = st.empty()
+        stream = Runner.run_streamed(
+            agent,
+            message,
+            session=session
+        )
 
+        response = ""
+        async for event in stream.stream_events():
+            if event.type == "raw_response_event":
+                if event.data.type == "response.output_text.delta":
+                    response += event.data.delta
+                    placeholder.write(response)
 
-if __name__ == "__main__":
-    main()
+# 메시지 입력
+if prompt := st.chat_input("메시지를 입력하세요..."):
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    asyncio.run(run_agent(prompt))
+
+with st.sidebar:
+    st.write(asyncio.run(session.get_items()))
