@@ -24,3 +24,18 @@ User: 좋은 습관을 만들려면 어떻게 해야 해?
 Coach: [웹 검색: "습관 만들기 기술"]
 Coach: 가장 효과적인 방법은 "습관 쌓기(habit stacking)" 기법입니다...
 ```
+
+## 실행 방법
+
+- **요구 사항:** Python 3.13 이상, [`uv`](https://docs.astral.sh/uv/) 권장
+- **의존성 설치:** 프로젝트 루트에서 `uv sync`
+- **앱 실행:**
+
+  ```bash
+  uv run streamlit run main.py
+  ```
+
+  브라우저에서 기본 주소는 `http://localhost:8501` 입니다.
+
+- **환경 변수:** OpenAI API 키가 필요합니다. 프로젝트 루트에 `.env`를 두고 `OPENAI_API_KEY=...` 형태로 설정하세요 (`python-dotenv`로 로드).
+- **대화 저장:** 세션은 기본적으로 `life-coach.db`(SQLite)에 쌓입니다.
