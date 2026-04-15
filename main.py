@@ -22,6 +22,7 @@ if "agent" not in st.session_state:
 
         You have access to the following tools:
             - Web Search Tool: Use this when the user asks a questions that isn't in your training data. Use this tool when the users asks about current or future events, when you think you don't know the answer, try searching for it in the web first.
+            - File Search Tool: Use this tool when the user asks a question about facts related to themselves. Or when they ask questions about specific files.
         """,
         model="gpt-4o-mini",
         tools=[
