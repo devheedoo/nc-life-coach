@@ -1,11 +1,12 @@
 import asyncio
-
+import os
 import streamlit as st
 from dotenv import load_dotenv
-from agents import Agent, Runner, SQLiteSession, WebSearchTool
+from agents import Agent, FileSearchTool, Runner, SQLiteSession, WebSearchTool
 from openai import OpenAI
 
 load_dotenv()
+vector_store_id = os.getenv("VECTOR_STORE_ID")
 
 st.title("Life Coach: Web Search")
 
@@ -23,7 +24,13 @@ if "agent" not in st.session_state:
             - Web Search Tool: Use this when the user asks a questions that isn't in your training data. Use this tool when the users asks about current or future events, when you think you don't know the answer, try searching for it in the web first.
         """,
         model="gpt-4o-mini",
-        tools=[WebSearchTool()],
+        tools=[
+            WebSearchTool(),
+            FileSearchTool(
+                vector_store_ids=[vector_store_id],
+                max_num_results=3,
+            )
+        ],
     )
 agent = st.session_state["agent"]
 
@@ -54,6 +61,9 @@ async def paint_history():
             if msg["type"] == "web_search_call":
                 with st.chat_message("assistant"):
                     st.write(f'[웹 검색: "{msg["action"]["query"]}"]')
+            elif msg["type"] == "file_search_call":
+                with st.chat_message("assistant"):
+                    st.write("[목표 문서 검색]")
 asyncio.run(paint_history())
 
 # 에이전트 실행
@@ -74,10 +84,25 @@ async def run_agent(message):
                     placeholder.write(response)
 
 # 메시지 입력
-if prompt := st.chat_input("메시지를 입력하세요..."):
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    asyncio.run(run_agent(prompt))
+if prompt := st.chat_input(
+    "메시지를 입력하세요...",
+    accept_file=True,
+    file_type=["txt"]
+):
+    for file in prompt.files:
+        with st.chat_message("assistant"):
+            uploaded_file = client.files.create(
+                file=(file.name, file.getvalue()),
+                purpose="user_data",
+            )
+            client.vector_stores.files.create(
+                vector_store_id=vector_store_id,
+                file_id=uploaded_file.id,
+            )
+    if prompt.text:
+        with st.chat_message("user"):
+            st.write(prompt.text)
+        asyncio.run(run_agent(prompt.text))
 
 with st.sidebar:
     st.write(asyncio.run(session.get_items()))
