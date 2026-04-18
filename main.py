@@ -1,11 +1,13 @@
 import asyncio
 import base64
 import os
+
 import streamlit as st
 from dotenv import load_dotenv
-from agents import Agent, FileSearchTool, Runner, RunConfig, SQLiteSession, WebSearchTool, ImageGenerationTool
-from agents.run_config import CallModelData, ModelInputData
+from agents import Agent, FileSearchTool, Runner, WebSearchTool, ImageGenerationTool
 from openai import OpenAI
+
+from session_store import SESSION_STORE_VERSION, LifeCoachSQLiteSession
 
 load_dotenv()
 vector_store_id = os.getenv("VECTOR_STORE_ID")
@@ -64,11 +66,15 @@ if "agent" not in st.session_state:
 agent = st.session_state["agent"]
 
 # 세션 메모리 초기화
-if "session" not in st.session_state:
-    st.session_state["session"] = SQLiteSession(
+if (
+    "session" not in st.session_state
+    or st.session_state.get("_session_store_version") != SESSION_STORE_VERSION
+):
+    st.session_state["session"] = LifeCoachSQLiteSession(
         session_id="life-coach",
         db_path="life-coach.db",
     )
+    st.session_state["_session_store_version"] = SESSION_STORE_VERSION
 session = st.session_state["session"]
 
 # 메시지 표시
